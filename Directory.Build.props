@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Exclude YAB's instrumentation and temporary data from standard builds -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**\.yab\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

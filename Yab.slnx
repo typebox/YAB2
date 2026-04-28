@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Yab.Kernel/Yab.Kernel.csproj" />
+  <Project Path="Sample/Sample.csproj" />
+  <Project Path="Yab.Cli/Yab.Cli.csproj" />
+  <Project Path="Yab.Tests/Yab.Tests.csproj" />
+</Solution>

@@ -1,0 +1,17 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.gemini/
+.idea/
+
+# YAB Generated Files
+.yab/
+yab-hits.json
+LivingDocumentation.html
+BUILD_CERTIFICATE.md
+TestResults/
+
+# Generated Test Code
+*.feature.cs

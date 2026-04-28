@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>YAB | Living Documentation</title>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>
+    <script src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'></script>
+    <link href='https://unpkg.com/prismjs@1.29.0/themes/prism-tomorrow.min.css' rel='stylesheet' />
+    <script src='https://unpkg.com/prismjs@1.29.0/prism.js'></script>
+    <script src='https://unpkg.com/prismjs@1.29.0/components/prism-csharp.min.js'></script>
+    <style>
+        :root { --nav-width: 280px; --right-pane-width: 520px; --bg-main: #ffffff; --bg-sidebar: #f8fafc; --bg-code: #0f172a; --text-primary: #1e293b; --text-secondary: #64748b; --accent: #6366f1; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; color: var(--text-primary); background: var(--bg-main); display: flex; height: 100vh; overflow: hidden; transition: all 0.3s; }
+        aside.nav-pane { width: var(--nav-width); background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem; overflow-y: auto; flex-shrink: 0; transition: transform 0.3s, width 0.3s, padding 0.3s, margin 0.3s; }
+        body.sidebar-collapsed aside.nav-pane { width: 0; padding: 0; margin-left: -1px; transform: translateX(-100%); overflow: hidden; }
+        .sidebar-toggle { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 3rem; height: 3rem; background: var(--bg-code); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; transition: all 0.2s; border: 1px solid #334155; }
+        .sidebar-toggle:hover { transform: scale(1.1); background: var(--accent); }
+        .sidebar-toggle svg { width: 1.5rem; height: 1.5rem; transition: transform 0.3s; }
+        body.sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+        .logo { font-weight: 800; font-size: 1.25rem; color: var(--accent); margin-bottom: 2.5rem; display: flex; align-items: center; gap: 0.625rem; text-decoration: none; }
+        .nav-section h4 { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 1rem; letter-spacing: 0.1em; font-weight: 700; }
+        .nav-item { padding: 0.625rem 0.875rem; border-radius: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; margin-bottom: 0.25rem; font-weight: 500; cursor: pointer; }
+        .nav-item:hover { background: #f1f5f9; }
+        .nav-item.active { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: var(--accent); }
+        .nav-status { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+        .nav-status.verified { background: var(--success); }
+        .nav-status.drifted { background: var(--warning); }
+        main.app-container { flex-grow: 1; display: grid; grid-template-columns: 1fr var(--right-pane-width); height: 100vh; overflow: hidden; transition: grid-template-columns 0.3s; }
+        body.sidebar-collapsed main.app-container { grid-template-columns: 1fr 1fr; }
+        .content-pane { padding: 4rem 5rem; overflow-y: auto; min-width: 0; }
+        .implementation-pane { background: var(--bg-code); color: #e2e8f0; padding: 2rem; overflow-y: auto; border-left: 1px solid #1e293b; min-width: 0; }
+        .doc-section { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 3rem; font-weight: 800; margin-bottom: 2rem; color: #0f172a; letter-spacing: -0.02em; }
+        .metadata-pill { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 600; margin-bottom: 2.5rem; border: 1px solid var(--border); background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .rule-card { background: #ffffff; border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .rule-id { font-size: 0.75rem; color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
+        .impl-title-main { font-size: 0.75rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 2rem; border-bottom: 1px solid #1e293b; padding-bottom: 1rem; }
+        .impl-card { background: #1e293b; border-radius: 0.75rem; margin-bottom: 2rem; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .impl-card-header { padding: 1rem 1.25rem; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .impl-filename { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .conf-bar { width: 40px; height: 4px; background: #334155; border-radius: 2px; }
+        .conf-fill { height: 100%; border-radius: 2px; }
+        .implementation-pane pre { padding: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; overflow-x: auto; color: #e2e8f0; background: transparent; }
+        .markdown-body pre { background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; overflow-x: auto; margin-bottom: 2rem; border: 1px solid var(--border); font-size: 0.9rem; }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.25rem; color: var(--accent); }
+        .markdown-body h2 { margin: 3rem 0 1.25rem; font-size: 1.75rem; color: #0f172a; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
+        .markdown-body h3 { margin: 2.5rem 0 1rem; font-size: 1.25rem; color: #0f172a; }
+        .markdown-body p { margin-bottom: 1.5rem; line-height: 1.8; color: #334155; }
+        .markdown-body ul, .markdown-body ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .markdown-body li { margin-bottom: 0.5rem; }
+        .drift-badge { display: block; padding: 0.75rem 1.25rem; background: rgba(239, 68, 68, 0.1); color: #f87171; font-size: 0.75rem; font-weight: 600; border-top: 1px solid #334155; }
+        .ai-feedback { padding: 1.25rem; background: #0f172a; color: #cbd5e1; font-size: 0.85rem; border: 1px solid #334155; border-radius: 0.5rem; line-height: 1.6; border-left: 4px solid var(--danger); white-space: pre-wrap; margin-top: 1rem; }
+        .ai-feedback.passed { border-left-color: var(--success); }
+        .ai-feedback b { color: var(--danger); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.1em; display: block; margin-bottom: 0.75rem; font-weight: 800; }
+        .ai-feedback.passed b { color: var(--success); }
+        
+        .audit-rationale-card { background: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid var(--danger); padding: 1.75rem; border-radius: 0.75rem; margin-top: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .audit-rationale-card h3 { color: #0f172a; font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+        .audit-rationale-card p { color: #475569; font-size: 0.95rem; line-height: 1.6; margin: 0; }
+        .audit-rationale-card.passed { border-left-color: var(--success); }
+        .audit-rationale-card .status-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; flex-shrink: 0; }
+        .status-icon.blocked { background: #fee2e2; color: #ef4444; }
+        .status-icon.passed { background: #dcfce7; color: #10b981; }
+
+        .nav-status.semantic-fail { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .manual-audit-btn { position: fixed; bottom: 4rem; left: 1.5rem; font-size: 0.75rem; font-weight: 700; color: #ffffff; background: var(--bg-code); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #334155; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: all 0.2s; z-index: 100; }
+        .manual-audit-btn:hover { background: var(--accent); border-color: var(--accent); }
+        .concept-desc { color: var(--text-secondary); font-size: 1.25rem; line-height: 1.6; margin-bottom: 3rem; font-weight: 500; }
+        .markdown-body { line-height: 1.8; font-size: 1.1rem; color: #334155; }
+        .markdown-body p { margin-bottom: 1.25rem; }
+        .markdown-body h2 { margin: 2.5rem 0 1rem; font-size: 1.5rem; color: #0f172a; }
+        .markdown-body h3 { margin: 2rem 0 1rem; font-size: 1.25rem; color: #0f172a; }
+        .markdown-body ul { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .markdown-body li { margin-bottom: 0.5rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #ffffff; padding: 2rem; border-radius: 1rem; width: 600px; max-width: 90%; }
+        .modal-content textarea { width: 100%; height: 300px; padding: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-bottom: 1.5rem; margin-top: 1rem; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+        .commit-badge { position: fixed; bottom: 1.5rem; left: 1.5rem; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); background: #ffffff; padding: 0.25rem 0.5rem; border: 1px solid var(--border); }
+        .physical-anchor { display: none; background: #fefce8; color: #854d0e; border: 1px solid #fef08a; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 500; }
+        body.show-anchors .physical-anchor { display: inline; }
+        .toggle-container { margin-top: 1.5rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(16px); }
+        .toggle-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+        .runtime-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.75rem; vertical-align: middle; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .doc-tabs { display: flex; gap: 0; margin-bottom: 2rem; border-bottom: 2px solid var(--border); }
+        .doc-tab { padding: 0.75rem 1.5rem; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; }
+        .doc-tab:hover { color: var(--text-primary); }
+        .doc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .doc-tab-content { display: none; }
+        .doc-tab-content.active { display: block; }
+        .doc-tab .tab-count { background: var(--border); color: var(--text-secondary); font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; margin-left: 0.5rem; }
+        .doc-tab.active .tab-count { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
+        .tests-section { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+        .test-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .test-item .test-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
+        .test-type.bdd { background: #dbeafe; color: #1d4ed8; }
+        .test-type.unit { background: #dcfce7; color: #15803d; }
+    </style>
+</head>
+<body>
+    <aside class='nav-pane'>
+        <a href='#' class='logo'><svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg> YAB <span>BANKING</span></a>
+        <div class='nav-section'><h4>Domain Concepts</h4><nav id='nav-concepts'></nav></div>
+        <div class='nav-section'>
+            <label style='display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; cursor:pointer; margin-top:1rem; color:var(--text-secondary); font-weight:600'>
+                <input type='checkbox' id='toggle-anchors' onchange='document.body.classList.toggle("show-anchors", this.checked)'>
+                <span>Show Physical Anchors</span>
+            </label>
+        </div>
+        <button class='manual-audit-btn' onclick='openModal()'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><path d='M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'/></svg> Paste AI Results</button>
+        <div id='manual-modal' class='modal'><div class='modal-content'><h3>Paste AI Results</h3><p style='font-size:0.8rem; color:var(--text-secondary)'>Paste raw AI output containing 'COMPONENT: [Name] - [PASSED/BLOCKED]'.</p><textarea id='ai-results-input' placeholder='COMPONENT: MyClass - PASSED...'></textarea><div class='modal-actions'><button onclick='closeModal()' style='padding:0.5rem 1rem; border:none; background:none; cursor:pointer'>Cancel</button><button onclick='submitResults()' style='padding:0.5rem 1rem; background:var(--accent); color:white; border:none; border-radius:0.4rem; cursor:pointer'>Update Cache</button></div></div></div>
+        <div class='commit-badge' id='commit-id'>Commit: </div>
+    </aside>
+    <main class='app-container'>
+        <section class='content-pane' id='doc-content'></section>
+        <section class='implementation-pane' id='impl-content'></section>
+    </main>
+    <div class='sidebar-toggle' onclick='toggleSidebar()' title='Toggle Sidebar'>
+        <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M15 18l-6-6 6-6'/></svg>
+    </div>
+    <script type='application/json' id='yab-data-island'>{{JSON_DATA}}</script>
+    <script>
+        function start() {
+            const data = JSON.parse(document.getElementById('yab-data-island').textContent);
+            document.getElementById('commit-id').innerText = 'Commit: ' + (data.GitCommit || 'Unknown');
+            const nav = document.getElementById('nav-concepts');
+            const concepts = [...new Set(Object.values(data.MarkdownFiles).map(f => f.Metadata?.Concept).filter(Boolean))].sort();
+            if (localStorage.getItem('yab-sidebar-collapsed') === 'true') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+            concepts.forEach((concept, i) => {
+                const blocks = data.Blocks.filter(b => (b.Concepts || []).includes(concept));
+                const isDrifted = blocks.some(b => b.VerificationStatus !== 'VERIFIED');
+                const hasSemanticFailure = blocks.some(b => b.SemanticReviewMessage && b.SemanticReviewMessage.toLowerCase().includes('blocked'));
+                
+                let statusClass = 'verified';
+                if (hasSemanticFailure) statusClass = 'semantic-fail';
+                else if (isDrifted) statusClass = 'drifted';
+
+                const a = document.createElement('div');
+                a.className = 'nav-item' + (i === 0 ? ' active' : '');
+                a.innerHTML = '<span>' + concept + '</span><div class="nav-status ' + statusClass + '"></div>';
+                a.onclick = () => { switchConcept(concept, data); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); a.classList.add('active'); };
+                nav.appendChild(a);
+            });
+            if (concepts.length > 0) switchConcept(concepts[0], data);
+        }
+        function switchTab(tabId) {
+            document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.doc-tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            const el = document.getElementById('tab-' + tabId);
+            if (el) el.classList.add('active');
+        }
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('yab-sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
+        }
+        function switchConcept(name, data) {
+            const docPane = document.getElementById('doc-content');
+            const implPane = document.getElementById('impl-content');
+            
+            // Find ALL markdown files for this concept
+            const allFiles = Object.entries(data.MarkdownFiles)
+                .filter(([k, f]) => f.Metadata?.Concept === name)
+                .map(([k, f]) => ({ key: k, ...f }));
+            
+            // Group by type
+            const businessDocs = allFiles.filter(f => !f.Metadata?.Type || f.Metadata.Type === 'business-rule');
+            const opsDocs = allFiles.filter(f => f.Metadata?.Type === 'ops-playbook');
+            const archDocs = allFiles.filter(f => f.Metadata?.Type === 'architecture');
+            
+            const implementations = data.Blocks.filter(b => (b.Concepts || []).includes(name) && !b.IsTest);
+            const tests = data.Blocks.filter(b => (b.Concepts || []).includes(name) && b.IsTest);
+            
+            // Build tab structure
+            const tabs = [];
+            if (businessDocs.length > 0) tabs.push({ id: 'business', label: 'Business Logic', docs: businessDocs });
+            if (opsDocs.length > 0) tabs.push({ id: 'ops', label: 'Operations', docs: opsDocs });
+            if (archDocs.length > 0) tabs.push({ id: 'arch', label: 'Architecture', docs: archDocs });
+            
+            // If no docs found at all, use first file as fallback
+            if (tabs.length === 0) {
+                const fallbackFile = Object.values(data.MarkdownFiles).find(f => f.Metadata?.Concept === name);
+                if (!fallbackFile) return;
+                tabs.push({ id: 'business', label: 'Business Logic', docs: [fallbackFile] });
+            }
+            
+            // Header
+            let h = '<div class="doc-section">';
+            h += '<div class="metadata-pill"><span>Status: <strong>' + (tabs[0].docs[0].Metadata?.Status || 'Active') + '</strong></span><span style="color:#e2e8f0">|</span><span>Audience: <strong>' + (tabs[0].docs[0].Metadata?.Audience || 'Developer') + '</strong></span></div>';
+            h += '<h1>' + name + '</h1>';
+            
+            // Tabs (only show if more than one type)
+            if (tabs.length > 1) {
+                h += '<div class="doc-tabs">';
+                tabs.forEach((tab, i) => {
+                    h += '<button class="doc-tab' + (i === 0 ? ' active' : '') + '" onclick="switchTab(\'' + tab.id + '\')">' + tab.label + '<span class="tab-count">' + tab.docs.length + '</span></button>';
+                });
+                h += '</div>';
+            }
+            
+            // Tab content
+            tabs.forEach((tab, i) => {
+                h += '<div id="tab-' + tab.id + '" class="doc-tab-content' + (i === 0 ? ' active' : '') + '">';
+                tab.docs.forEach(file => {
+                    let rawMd = (file.Content || '').trim();
+                    rawMd = rawMd.replace(/^#\s+.*?\n/, '').trim();
+                    rawMd = rawMd.replace(/## Physical Anchors[\s\S]*?(?=\n##|$)/g, '').trim();
+                    const processedMd = rawMd
+                        .replace(/\[yab-hash:.*?:.*?\]/g, match => '<span class="physical-anchor">' + match + '</span>')
+                        .replace(/\[yab-audit:.*?:.*?\]/g, match => '<span class="physical-anchor" style="background:#fef2f2; color:#b91c1c; border-color:#fee2e2">' + match + '</span>');
+                    
+                    let mdContent = '';
+                    try {
+                        if (typeof marked !== 'undefined') {
+                            mdContent = marked.parse(processedMd);
+                        } else {
+                            mdContent = '<pre style="color:var(--text-primary); font-family:inherit; white-space:pre-wrap; background:transparent; border:none; padding:0; font-size:1rem; line-height:1.6">' + escapeHtml(processedMd) + '</pre>';
+                        }
+                    } catch (e) {
+                        mdContent = '<pre style="color:var(--text-primary); font-family:inherit; white-space:pre-wrap; background:transparent; border:none; padding:0">' + escapeHtml(processedMd) + '</pre>';
+                    }
+                    
+                    if (file.Metadata?.Description) {
+                        h += '<p class="concept-desc">' + file.Metadata.Description + '</p>';
+                    }
+                    h += '<div class="markdown-body">' + mdContent + '</div>';
+                });
+                h += '</div>';
+            });
+            
+            // Functional Tests section
+            if (tests.length > 0) {
+                h += '<div class="tests-section"><h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; letter-spacing:0.1em; margin-bottom:1rem;">Functional Tests</h3>';
+                tests.forEach(t => {
+                    const isBdd = t.FilePath.endsWith('.feature.cs') || t.Name.includes('Steps') || t.Content.includes('[Binding]');
+                    const typeLabel = isBdd ? 'BDD' : 'Unit';
+                    const typeClass = isBdd ? 'bdd' : 'unit';
+                    h += '<div class="test-item"><span class="test-type ' + typeClass + '">' + typeLabel + '</span><span>' + t.Name + '</span></div>';
+                });
+                h += '</div>';
+            }
+            
+            // AI Audit Rationale
+            const auditNotes = implementations.filter(b => b.SemanticReviewMessage);
+            if (auditNotes.length > 0) {
+                h += '<div class="audit-rationale-section" style="margin-top:3rem; border-top: 2px solid #f1f5f9; padding-top: 2rem;"><h3>AI Audit Insights</h3>';
+                auditNotes.forEach(b => {
+                    const isBlocked = b.SemanticReviewMessage.toLowerCase().includes('blocked');
+                    h += '<div class="audit-rationale-card ' + (isBlocked ? '' : 'passed') + '"><h3><div class="status-icon ' + (isBlocked ? 'blocked' : 'passed') + '">' + (isBlocked ? '!' : '✓') + '</div> ' + (isBlocked ? 'Logic Compliance Mismatch' : 'Semantic Verification Passed') + '</h3><p><strong>' + b.Name + ':</strong> ' + escapeHtml(b.SemanticReviewMessage) + '</p></div>';
+                });
+                h += '</div>';
+            }
+            
+            if ((tabs[0].docs[0].Metadata?.Rules || []).length > 0) {
+                h += '<div class="rules-section" style="margin-top:3rem"><h3>Business Rules</h3>';
+                tabs[0].docs[0].Metadata.Rules.forEach(r => { h += '<div class="rule-card"><span class="rule-id">' + r.Id + '</span><p>' + r.Description + '</p></div>'; });
+                h += '</div>';
+            }
+            h += '</div>';
+            docPane.innerHTML = h;
+
+            let ih = '<div class="impl-title-main">Implementation & Verification</div>';
+            implementations.forEach(b => ih += renderCard(b));
+            if (tests.length > 0) {
+                ih += '<div class="impl-title-main" style="margin-top:4rem">Verification Tests</div>';
+                tests.forEach(t => ih += renderCard(t));
+            }
+            implPane.innerHTML = ih;
+            if (typeof Prism !== 'undefined') Prism.highlightAll();
+            docPane.scrollTop = 0;
+            implPane.scrollTop = 0;
+        }
+        function renderCard(block) {
+            const color = block.ConfidenceScore > 90 ? 'var(--success)' : (block.ConfidenceScore > 0 ? 'var(--warning)' : 'var(--danger)');
+            const isBlocked = block.SemanticReviewMessage && block.SemanticReviewMessage.toLowerCase().includes('blocked');
+            
+            let c = '<div class="impl-card"><div class="impl-card-header"><span class="impl-filename">' + block.Name + (block.RuntimeVerified ? '<span class="runtime-badge">Runtime Verified</span>' : '') + '</span><div class="impl-confidence"><span>' + block.ConfidenceScore + '% Match</span><div class="conf-bar"><div class="conf-fill" style="width:' + block.ConfidenceScore + '%; background:' + color + '"></div></div></div></div>';
+            if (block.Intent) c += '<div class="impl-intent">' + block.Intent + '</div>';
+            c += '<pre><code class="language-csharp">' + escapeHtml(block.Content) + '</code></pre>';
+
+            if (block.StatementsCovered > 0) {
+                c += '<div style="padding:0.25rem 1.25rem; font-size:0.65rem; color:#94a3b8; background:#0f172a">' + 
+                     block.StatementsCovered + ' statements covered</div>';
+            }
+
+            if (block.CoverageOverlap) {
+                c += '<div style="padding:0.75rem 1.25rem; background:#0f172a; border-top:1px solid #334155; font-size:0.75rem; color:#94a3b8">';
+                c += '<strong style="color:#6366f1">Coverage Overlap:</strong> ';
+                c += block.CoverageOverlap.BddTests.length + ' BDD + ' + block.CoverageOverlap.UnitTests.length + ' Unit tests hit this code';
+                c += '</div>';
+            }
+
+            if (block.SemanticReviewMessage) {
+                c += `<div class="ai-feedback ${isBlocked ? '' : 'passed'}"><b>AI Semantic Review</b>${escapeHtml(block.SemanticReviewMessage).replace(/\n/g, '<br>')}</div>`;
+            }
+            if (block.VerificationStatus !== 'VERIFIED') c += '<div class="drift-badge">⚠️ ' + block.VerificationStatus + '</div>';
+            return c + '</div>';
+        }
+        function openModal() { document.getElementById('manual-modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('manual-modal').style.display = 'none'; }
+        async function submitResults() {
+            const text = document.getElementById('ai-results-input').value;
+            const res = await fetch('/api/audit-results', { method: 'POST', body: text });
+            if (res.ok) {
+                alert('Cache updated! Please re-run yab to see changes.');
+                closeModal();
+            } else {
+                alert('Failed to update cache.');
+            }
+        }
+        function escapeHtml(s) { if (!s) return ''; return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        start();
+    </script>
+</body>
+</html>
