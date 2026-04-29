@@ -15,3 +15,6 @@ TestResults/
 
 # Generated Test Code
 *.feature.cs
+
+Yab.Cli/portal/node_modules/
+Yab.Cli/portal/_vendor_entry.js

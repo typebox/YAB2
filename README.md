@@ -83,4 +83,24 @@ YAB follows a minimalist, convention-over-configuration philosophy inspired by t
 
 ---
 
+## 🛠️ Development
+
+If you are contributing to YAB and want to modify the documentation portal UI:
+
+### Building the Portal Template
+The `PortalTemplate.html` is programmatically generated from modular source files.
+
+1.  **Navigate to the portal project**: `cd Yab.Cli/portal`
+2.  **Install dependencies**: `npm install`
+3.  **Run the build**: `npm run build`
+
+This will assemble the CSS, JS, and Fonts from `Yab.Cli/portal/src/` into a single, self-contained `Yab.Cli/Resources/PortalTemplate.html`.
+
+### Portal Source Structure
+- `src/template.html`: The HTML skeleton.
+- `src/styles/`: Modular CSS (layout, components, coverage, search).
+- `src/js/`: Modular JS logic (SQLite init, concept rendering, FTS search).
+
+---
+
 *Built with ❤️ for developers who value clarity, integrity, and simplicity.*

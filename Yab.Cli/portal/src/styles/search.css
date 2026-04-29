@@ -1,0 +1,18 @@
+.search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    outline: none;
+    background: white;
+    transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-results {
+    margin-top: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+}
+.search-results .nav-item { font-size: 0.8rem; padding: 0.4rem 0.6rem; }

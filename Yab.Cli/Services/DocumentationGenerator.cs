@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using Yab.Cli.Models;
 
 namespace Yab.Cli.Services
@@ -11,9 +10,10 @@ namespace Yab.Cli.Services
     {
         public void GeneratePortal(DocumentationData data, string outputPath)
         {
-            var jsonData = JsonSerializer.Serialize(data);
-            jsonData = jsonData.Replace("</script>", "<\\/script>");
-            
+            // Export data to SQLite Base64
+            var exporter = new SqliteExporter();
+            var sqliteBase64 = exporter.Export(data);
+
             var assembly = Assembly.GetExecutingAssembly();
             var resourceName = "Yab.Cli.Resources.PortalTemplate.html";
 
@@ -21,7 +21,7 @@ namespace Yab.Cli.Services
             using (StreamReader reader = new StreamReader(stream))
             {
                 string template = reader.ReadToEnd();
-                string html = template.Replace("{{JSON_DATA}}", jsonData);
+                string html = template.Replace("{{SQLITE_BASE64}}", sqliteBase64);
                 File.WriteAllText(outputPath, html);
             }
         }

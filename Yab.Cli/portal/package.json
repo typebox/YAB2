@@ -1,0 +1,14 @@
+{
+  "name": "yab-portal-build",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.x",
+    "marked": "^15.x",
+    "prismjs": "^1.29.0",
+    "sql.js": "^1.12.x"
+  }
+}
