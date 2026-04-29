@@ -10,11 +10,11 @@ namespace Yab.Runtime
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (context.Request.Headers.TryGetValue("X-Yab-TraceId", out var traceId))
+            if (context.Request.Headers.TryGetValue(YabHeaderConstants.TraceIdHeader, out var traceId))
             {
                 YabTracker.SetTraceId(traceId!);
             }
-            if (context.Request.Headers.TryGetValue("X-Yab-TestId", out var testId))
+            if (context.Request.Headers.TryGetValue(YabHeaderConstants.TestContextHeader, out var testId))
             {
                 YabTracker.SetCurrentTest(testId!);
             }

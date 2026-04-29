@@ -39,6 +39,15 @@ namespace Yab.Cli.Services
             _signOffService = new SignOffService(_data);
 
             var codeBlocks = _scanner.ScanDirectory(_rootPath, discovery);
+            
+            // Also scan .feature files for original Gherkin syntax
+            var featureScanner = new FeatureFileScanner();
+            var featureFiles = discovery.EnumerateFiles(_rootPath, "*.feature");
+            foreach (var featureFile in featureFiles)
+            {
+                codeBlocks.AddRange(featureScanner.ScanFile(featureFile));
+            }
+
             _data.Blocks = codeBlocks;
 
             var mdFiles = discovery.EnumerateFiles(_rootPath!, "*.md");
@@ -75,7 +84,18 @@ namespace Yab.Cli.Services
             // Step 2: Detect tests and infer concepts
             foreach (var block in _data.Blocks)
             {
-                if (block.FilePath.Contains(".Tests") || block.Content.Contains("[Fact]") || block.Content.Contains("[Theory]"))
+                if (block.FilePath?.Contains("Tests", StringComparison.OrdinalIgnoreCase) == true || 
+                    block.FilePath?.Contains("Steps", StringComparison.OrdinalIgnoreCase) == true ||
+                    block.Name?.Contains("Steps", StringComparison.OrdinalIgnoreCase) == true ||
+                    block.Content?.Contains("Fact") == true || 
+                    block.Content?.Contains("Theory") == true ||
+                    block.Content?.Contains("Test") == true ||
+                    block.Content?.Contains("SkippableFact") == true ||
+                    block.Content?.Contains("[Binding]") == true ||
+                    block.Content?.Contains("[Given") == true ||
+                    block.Content?.Contains("[When") == true ||
+                    block.Content?.Contains("[Then") == true ||
+                    block.FilePath?.EndsWith(".feature", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     block.IsTest = true;
                 }
@@ -86,7 +106,7 @@ namespace Yab.Cli.Services
             foreach (var fileBlocks in _data.Blocks.GroupBy(b => b.FilePath))
             {
                 var classBlocks = fileBlocks.Where(b => !b.IsTest && !b.Name.Contains(".")).ToList();
-                var methodBlocks = fileBlocks.Where(b => !b.IsTest && b.Name.Contains(".")).ToList();
+                var methodBlocks = fileBlocks.Where(b => b.Name.Contains(".")).ToList();
 
                 foreach (var cb in classBlocks)
                 {
@@ -221,16 +241,16 @@ namespace Yab.Cli.Services
 
         private void AssociateWithExternalDocumentation(CodeBlock block, DocumentationData data, List<string> driftWarnings)
         {
-            var csFile = block.FilePath;
+            var csFile = Path.GetFullPath(block.FilePath);
             var siblingMd = csFile.Replace(".cs", ".md");
 
             foreach (var mdPair in data.MarkdownFiles)
             {
-                var mdFile = mdPair.Key;
+                var mdFile = Path.GetFullPath(mdPair.Key);
                 var mdData = mdPair.Value;
                 var metadata = mdData.Metadata;
 
-                bool isSibling = (mdFile == siblingMd);
+                bool isSibling = string.Equals(mdFile, siblingMd, StringComparison.OrdinalIgnoreCase);
                 bool isConceptMatch = (metadata != null && block.Concepts.Contains(metadata.Concept));
                 bool sourceHasSibling = File.Exists(siblingMd);
 
@@ -321,6 +341,27 @@ namespace Yab.Cli.Services
                             if (!target.Concepts.Contains(concept))
                             {
                                 target.Concepts.Add(concept);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Also propagate from classes to methods (all blocks)
+            foreach (var fileBlocks in data.Blocks.GroupBy(b => b.FilePath))
+            {
+                var classBlocks = fileBlocks.Where(b => !b.Name.Contains(".")).ToList();
+                var methodBlocks = fileBlocks.Where(b => b.Name.Contains(".")).ToList();
+
+                foreach (var cb in classBlocks)
+                {
+                    foreach (var mb in methodBlocks)
+                    {
+                        if (mb.Name.StartsWith(cb.Name + "."))
+                        {
+                            foreach (var concept in cb.Concepts)
+                            {
+                                if (!mb.Concepts.Contains(concept)) mb.Concepts.Add(concept);
                             }
                         }
                     }

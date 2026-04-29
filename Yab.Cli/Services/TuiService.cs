@@ -48,6 +48,10 @@ namespace Yab.Cli.Services
             var width = AnsiConsole.Console.Profile.Width;
             layout["Left"].Size(Math.Min(45, width / 2));
 
+            // Auto-start initial synchronization
+            _context.Command = _context.Runtime ? "all" : "docs";
+            _ = RunPipelineAsync(_context.Runtime ? "Initial Full Sync (with Coverage)" : "Initial Documentation Sync");
+
             await AnsiConsole.Live(layout)
                 .StartAsync(async ctx =>
                 {
@@ -261,9 +265,9 @@ namespace Yab.Cli.Services
             switch (commandChar)
             {
                 case "G":
-                    _context.Logs.Add("[grey]INPUT:[/] G - Generating Documentation...");
-                    _context.Command = "docs";
-                    _ = RunPipelineAsync("Generating Documentation");
+                    _context.Logs.Add("[grey]INPUT:[/] G - Synchronizing...");
+                    _context.Command = _context.Runtime ? "all" : "docs";
+                    _ = RunPipelineAsync(_context.Runtime ? "Full Sync (with Coverage)" : "Documentation Sync");
                     break;
                 case "R":
                     _context.Logs.Add("[grey]INPUT:[/] R - Performing Review...");

@@ -12,33 +12,40 @@ namespace Yab.Runtime
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _hits = new();
         private static readonly ConcurrentDictionary<string, ConcurrentBag<TraceHit>> _traceHits = new();
 
-        [ThreadStatic]
-        private static string? _currentTestId;
-        [ThreadStatic]
-        private static string? _currentTraceId;
-
         private static readonly System.Diagnostics.ActivitySource _activitySource = new("Yab.Runtime");
 
-        public static void SetCurrentTest(string testId) => _currentTestId = testId;
-        public static void ClearCurrentTest() => _currentTestId = null;
-        public static void SetTraceId(string traceId) => _currentTraceId = traceId;
-        public static string? GetTraceId() => _currentTraceId;
+        public static void SetCurrentTest(string testId) => YabContext.TestIdStack = YabContext.TestIdStack.Push(testId);
+        public static void ClearCurrentTest()
+        {
+            if (!YabContext.TestIdStack.IsEmpty)
+                YabContext.TestIdStack = YabContext.TestIdStack.Pop();
+        }
+        public static void SetTraceId(string traceId) => YabContext.CurrentTraceId = traceId;
+        public static string? GetTraceId() => YabContext.CurrentTraceId;
 
         public static void Hit(string methodId)
         {
-            var testId = _currentTestId ?? "__unknown__";
-            var tests = _hits.GetOrAdd(methodId, _ => new ConcurrentDictionary<string, byte>());
-            tests.TryAdd(testId, 0);
+            var testIds = YabContext.AllCurrentTestIds.ToList();
+            if (testIds.Count == 0) testIds.Add("__unknown__");
 
-            if (_currentTraceId != null)
+            foreach (var testId in testIds)
             {
-                var traces = _traceHits.GetOrAdd(_currentTraceId, _ => new ConcurrentBag<TraceHit>());
-                traces.Add(new TraceHit { MethodId = methodId, TestId = testId, Timestamp = DateTimeOffset.UtcNow });
+                var tests = _hits.GetOrAdd(methodId, _ => new ConcurrentDictionary<string, byte>());
+                tests.TryAdd(testId, 0);
+            }
+
+            var traceId = YabContext.CurrentTraceId;
+            if (traceId != null)
+            {
+                var traces = _traceHits.GetOrAdd(traceId, _ => new ConcurrentBag<TraceHit>());
+                // Use the top-most test ID for the trace hit (most specific)
+                var topTestId = YabContext.CurrentTestId ?? "__unknown__";
+                traces.Add(new TraceHit { MethodId = methodId, TestId = topTestId, Timestamp = DateTimeOffset.UtcNow });
             }
 
             using var activity = _activitySource.StartActivity(methodId);
-            activity?.SetTag("yab.test_id", testId);
-            activity?.SetTag("yab.trace_id", _currentTraceId);
+            activity?.SetTag("yab.test_id", YabContext.CurrentTestId ?? "__unknown__");
+            activity?.SetTag("yab.trace_id", traceId);
         }
 
         private static readonly object _saveLock = new object();
@@ -87,7 +94,7 @@ namespace Yab.Runtime
             }
         }
 
-        public static void Clear() { _hits.Clear(); _traceHits.Clear(); _currentTestId = null; _currentTraceId = null; }
+        public static void Clear() { _hits.Clear(); _traceHits.Clear(); YabContext.Clear(); }
     }
 
     public class HitsFile { public List<string> Hits { get; set; } = new(); public Dictionary<string, List<string>> Matrix { get; set; } = new(); }

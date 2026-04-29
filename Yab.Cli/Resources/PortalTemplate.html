@@ -11,6 +11,7 @@
     <link href='https://unpkg.com/prismjs@1.29.0/themes/prism-tomorrow.min.css' rel='stylesheet' />
     <script src='https://unpkg.com/prismjs@1.29.0/prism.js'></script>
     <script src='https://unpkg.com/prismjs@1.29.0/components/prism-csharp.min.js'></script>
+    <script src='https://unpkg.com/prismjs@1.29.0/components/prism-gherkin.min.js'></script>
     <style>
         :root { --nav-width: 280px; --right-pane-width: 520px; --bg-main: #ffffff; --bg-sidebar: #f8fafc; --bg-code: #0f172a; --text-primary: #1e293b; --text-secondary: #64748b; --accent: #6366f1; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -100,16 +101,157 @@
         .doc-tab-content.active { display: block; }
         .doc-tab .tab-count { background: var(--border); color: var(--text-secondary); font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; margin-left: 0.5rem; }
         .doc-tab.active .tab-count { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
-        .tests-section { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
-        .test-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; }
-        .test-item .test-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
-        .test-type.bdd { background: #dbeafe; color: #1d4ed8; }
-        .test-type.unit { background: #dcfce7; color: #15803d; }
+        .tests-section { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+        .test-item { display: block; padding: 1.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: 1rem; margin-bottom: 1.25rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s; }
+        .test-item:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); }
+        .test-header { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 1rem; }
+        .test-name { font-weight: 700; color: var(--text-primary); font-size: 1.1rem; letter-spacing: -0.01em; }
+        .test-item .test-type { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 0.25rem 0.625rem; border-radius: 0.5rem; letter-spacing: 0.02em; }
+        .test-type.bdd { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
+        .test-type.unit { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        
+        .scenario-steps { margin-top: 0.5rem; padding: 1.25rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; }
+        .step-row { margin-bottom: 0.5rem; display: flex; align-items: flex-start; gap: 0.75rem; line-height: 1.5; }
+        .step-row:last-child { margin-bottom: 0; }
+        .step-keyword { font-weight: 800; color: var(--accent); font-size: 0.7rem; text-transform: uppercase; width: 50px; flex-shrink: 0; padding-top: 0.15rem; }
+        .step-text { font-size: 0.95rem; color: #475569; font-weight: 500; }
+
+        /* Coverage Map Styles */
+        .coverage-map-section { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+        .coverage-map-section h3 { font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 1.5rem; }
+        .coverage-map-wrapper { overflow-x: auto; border-radius: 0.75rem; border: 1px solid var(--border); background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .coverage-matrix thead { position: sticky; top: 0; z-index: 2; }
+        .coverage-matrix th { padding: 0.75rem 0.5rem; background: #f8fafc; font-weight: 700; color: var(--text-secondary); border-bottom: 2px solid var(--border); white-space: nowrap; text-align: center; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .coverage-matrix th.corner-cell { background: linear-gradient(135deg, #f8fafc 49.5%, var(--border) 49.5%, var(--border) 50.5%, #f8fafc 50.5%); min-width: 200px; }
+        .coverage-matrix th.col-header { 
+            height: 180px; 
+            min-width: 45px; 
+            max-width: 45px;
+            padding: 0;
+            position: relative;
+            vertical-align: bottom;
+            background: transparent;
+            border: none;
+        }
+        .coverage-matrix th.col-header .col-label-wrapper {
+            position: absolute;
+            bottom: 10px;
+            left: 22px; /* Center of 45px width */
+            transform: rotate(-45deg);
+            transform-origin: left bottom;
+            white-space: nowrap;
+            width: 250px;
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 0.7rem;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 4px;
+            text-transform: none; /* Preserve CamelCase for test names */
+            letter-spacing: normal;
+        }
+        .coverage-matrix th.col-header:hover .col-label-wrapper {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            padding-left: 4px;
+        }
+        .coverage-matrix .test-indicator-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(45deg); /* Inverse rotation to keep badge upright */
+            font-size: 0.6rem;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        .coverage-matrix tbody tr:hover { background: #f8fafc; }
+        .coverage-matrix td { padding: 0.5rem; text-align: center; border-bottom: 1px solid #f1f5f9; position: relative; }
+        .coverage-matrix td.row-header-cell { 
+            text-align: left; 
+            padding: 0.6rem 1rem; 
+            font-weight: 600; 
+            color: var(--text-primary); 
+            white-space: nowrap; 
+            min-width: 280px;
+            max-width: 400px; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            position: sticky; 
+            left: 0; 
+            background: #ffffff; 
+            z-index: 1; 
+            border-right: 1px solid var(--border); 
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .coverage-matrix tbody tr:hover td.row-header-cell { background: #f8fafc; }
+        .coverage-matrix .test-indicator-badge.bdd { background: #dbeafe; color: #1d4ed8; }
+        .coverage-matrix .test-indicator-badge.unit { background: #dcfce7; color: #15803d; }
+        .coverage-cell { width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .coverage-cell.hit { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .coverage-cell.hit:hover { background: rgba(16, 185, 129, 0.3); transform: scale(1.2); box-shadow: 0 0 12px rgba(16, 185, 129, 0.3); }
+        .coverage-cell.miss { background: #f8fafc; color: #e2e8f0; }
+        .coverage-cell.miss:hover { background: #f1f5f9; }
+        .coverage-cell svg { width: 14px; height: 14px; }
+        .coverage-summary-row td { background: #f8fafc !important; border-top: 2px solid var(--border); font-weight: 700; font-size: 0.7rem; padding: 0.75rem 0.5rem; }
+        .coverage-summary-row td.test-name-cell { color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; background: #f8fafc !important; }
+        .coverage-pct { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700; }
+        .coverage-pct.full { color: #10b981; }
+        .coverage-pct.high { color: #10b981; }
+        .coverage-pct.mid { color: #f59e0b; }
+        .coverage-pct.low { color: #ef4444; }
+        .coverage-pct.none { color: #cbd5e1; }
+        td.test-count-cell { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); border-left: 1px solid var(--border); min-width: 50px; }
+        .coverage-legend { display: flex; align-items: center; gap: 1.5rem; margin-top: 1rem; padding: 0.75rem 1rem; font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; }
+        .coverage-legend-item { display: flex; align-items: center; gap: 0.4rem; }
+        .coverage-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+        .coverage-legend-dot.hit { background: rgba(16, 185, 129, 0.3); }
+        .coverage-legend-dot.miss { background: #f1f5f9; border: 1px solid #e2e8f0; }
+        .coverage-empty-state { padding: 3rem 2rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
+        .coverage-empty-state svg { width: 48px; height: 48px; margin-bottom: 1rem; color: #e2e8f0; }
+        .coverage-empty-state p { margin-top: 0.5rem; font-size: 0.8rem; color: #94a3b8; }
+        .coverage-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #0f172a; color: #e2e8f0; padding: 0.4rem 0.75rem; border-radius: 0.375rem; font-size: 0.65rem; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+        .coverage-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #0f172a; }
+        .coverage-cell:hover .coverage-tooltip { opacity: 1; }
+        .coverage-stats-bar { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%); border: 1px solid var(--border); border-radius: 0.75rem; }
+        .coverage-stat { display: flex; flex-direction: column; gap: 0.15rem; }
+        .coverage-stat-value { font-size: 1.5rem; font-weight: 800; color: #0f172a; font-family: 'JetBrains Mono', monospace; }
+        .coverage-stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+
+        /* Layout Selector Styles */
+        .layout-selector { display: flex; background: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 2rem; border: 1px solid var(--border); }
+        .layout-btn { flex: 1; border: none; background: none; padding: 0.6rem 0.4rem; font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); cursor: pointer; border-radius: 0.5rem; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .layout-btn:hover { color: var(--text-primary); }
+        .layout-btn.active { background: #ffffff; color: var(--accent); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        body.layout-business .implementation-pane { display: none; }
+        body.layout-business main.app-container { grid-template-columns: 1fr !important; }
+        
+        body.layout-code .content-pane { display: none; }
+        body.layout-code .implementation-pane { border-left: none; }
+        body.layout-code main.app-container { grid-template-columns: 1fr !important; }
     </style>
 </head>
 <body>
     <aside class='nav-pane'>
         <a href='#' class='logo'><svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg> YAB <span>BANKING</span></a>
+        
+        <div class='nav-section'>
+            <h4>View Layout</h4>
+            <div class="layout-selector">
+                <button class="layout-btn" id="btn-layout-business" onclick="setLayout('business')">Business</button>
+                <button class="layout-btn" id="btn-layout-both" onclick="setLayout('both')">Both</button>
+                <button class="layout-btn" id="btn-layout-code" onclick="setLayout('code')">Code</button>
+            </div>
+        </div>
+
         <div class='nav-section'><h4>Domain Concepts</h4><nav id='nav-concepts'></nav></div>
         <div class='nav-section'>
             <label style='display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; cursor:pointer; margin-top:1rem; color:var(--text-secondary); font-weight:600'>
@@ -138,6 +280,9 @@
             if (localStorage.getItem('yab-sidebar-collapsed') === 'true') {
                 document.body.classList.add('sidebar-collapsed');
             }
+            const savedLayout = localStorage.getItem('yab-layout') || 'both';
+            setLayout(savedLayout);
+
             concepts.forEach((concept, i) => {
                 const blocks = data.Blocks.filter(b => (b.Concepts || []).includes(concept));
                 const isDrifted = blocks.some(b => b.VerificationStatus !== 'VERIFIED');
@@ -165,6 +310,14 @@
         function toggleSidebar() {
             document.body.classList.toggle('sidebar-collapsed');
             localStorage.setItem('yab-sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
+        }
+        function setLayout(layout) {
+            document.body.classList.remove('layout-business', 'layout-code', 'layout-both');
+            document.body.classList.add('layout-' + layout);
+            document.querySelectorAll('.layout-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('btn-layout-' + layout);
+            if (activeBtn) activeBtn.classList.add('active');
+            localStorage.setItem('yab-layout', layout);
         }
         function switchConcept(name, data) {
             const docPane = document.getElementById('doc-content');
@@ -240,17 +393,59 @@
                 h += '</div>';
             });
             
-            // Functional Tests section
-            if (tests.length > 0) {
-                h += '<div class="tests-section"><h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; letter-spacing:0.1em; margin-bottom:1rem;">Functional Tests</h3>';
-                tests.forEach(t => {
-                    const isBdd = t.FilePath.endsWith('.feature.cs') || t.Name.includes('Steps') || t.Content.includes('[Binding]');
-                    const typeLabel = isBdd ? 'BDD' : 'Unit';
-                    const typeClass = isBdd ? 'bdd' : 'unit';
-                    h += '<div class="test-item"><span class="test-type ' + typeClass + '">' + typeLabel + '</span><span>' + t.Name + '</span></div>';
+            // Behavioral Scenarios & Tests section
+            const featureTests = tests.filter(t => t.FilePath.endsWith(".feature"));
+            const unitTests = tests.filter(t => !t.FilePath.endsWith(".feature") && !t.FilePath.endsWith(".feature.cs") && !t.Name.includes("Steps") && !t.Content.includes("[Binding]"));
+            
+            const allListTests = [...featureTests, ...unitTests];
+            
+            if (allListTests.length > 0) {
+                h += '<div class="tests-section"><h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; letter-spacing:0.1em; margin-bottom:1.5rem;">Behavioral Scenarios & Tests</h3>';
+                allListTests.forEach(t => {
+                    const isGherkin = t.FilePath.endsWith('.feature');
+                    const typeLabel = isGherkin ? 'Scenario' : 'Unit Test';
+                    const typeClass = isGherkin ? 'bdd' : 'unit';
+                    
+                    let stepsHtml = '';
+                    if (isGherkin) {
+                        // Original Gherkin content
+                        const steps = t.Content.split('\n')
+                            .map(line => line.trim())
+                            .filter(line => line.length > 0 && !line.startsWith('Scenario:') && !line.startsWith('@'))
+                            .map(line => {
+                                const parts = line.split(' ');
+                                const keyword = parts[0];
+                                const text = parts.slice(1).join(' ');
+                                return `<div class="step-row"><span class="step-keyword">${keyword}</span><span class="step-text">${text}</span></div>`;
+                            });
+                        if (steps.length > 0) {
+                            stepsHtml = `<div class="scenario-steps">${steps.join('')}</div>`;
+                        }
+                    } else if (t.Content.includes('testRunner.')) {
+                        // Fallback for generated code if original feature not found
+                        const stepRegex = /await testRunner\.(Given|When|Then|And|But)Async\("([^"]+)"/g;
+                        let match;
+                        let steps = [];
+                        while ((match = stepRegex.exec(t.Content)) !== null) {
+                            steps.push(`<div class="step-row"><span class="step-keyword">${match[1]}</span><span class="step-text">${match[2]}</span></div>`);
+                        }
+                        if (steps.length > 0) {
+                            stepsHtml = `<div class="scenario-steps">${steps.join('')}</div>`;
+                        }
+                    }
+
+                    const shortName = t.Name.replace(/Scenario:\s*/, '').replace(/([A-Z])/g, ' $1').trim();
+
+                    h += '<div class="test-item">';
+                    h += `  <div class="test-header"><span class="test-type ${typeClass}">${typeLabel}</span><span class="test-name">${shortName}</span></div>`;
+                    if (stepsHtml) h += stepsHtml;
+                    h += '</div>';
                 });
                 h += '</div>';
             }
+
+            // Coverage Map section
+            h += renderCoverageMapv2(implementations, tests, data);
             
             // AI Audit Rationale
             const auditNotes = implementations.filter(b => b.SemanticReviewMessage);
@@ -273,9 +468,12 @@
 
             let ih = '<div class="impl-title-main">Implementation & Verification</div>';
             implementations.forEach(b => ih += renderCard(b));
-            if (tests.length > 0) {
+            
+            // Only show cards for non-step tests (Scenarios, Facts, etc)
+            const mainTests = tests.filter(t => !t.Name.includes("Steps") && !t.Content.includes("[Binding]"));
+            if (mainTests.length > 0) {
                 ih += '<div class="impl-title-main" style="margin-top:4rem">Verification Tests</div>';
-                tests.forEach(t => ih += renderCard(t));
+                mainTests.forEach(t => ih += renderCard(t));
             }
             implPane.innerHTML = ih;
             if (typeof Prism !== 'undefined') Prism.highlightAll();
@@ -285,10 +483,12 @@
         function renderCard(block) {
             const color = block.ConfidenceScore > 90 ? 'var(--success)' : (block.ConfidenceScore > 0 ? 'var(--warning)' : 'var(--danger)');
             const isBlocked = block.SemanticReviewMessage && block.SemanticReviewMessage.toLowerCase().includes('blocked');
+            const isGherkin = block.FilePath.toLowerCase().endsWith('.feature');
+            const langClass = isGherkin ? 'language-gherkin' : 'language-csharp';
             
             let c = '<div class="impl-card"><div class="impl-card-header"><span class="impl-filename">' + block.Name + (block.RuntimeVerified ? '<span class="runtime-badge">Runtime Verified</span>' : '') + '</span><div class="impl-confidence"><span>' + block.ConfidenceScore + '% Match</span><div class="conf-bar"><div class="conf-fill" style="width:' + block.ConfidenceScore + '%; background:' + color + '"></div></div></div></div>';
             if (block.Intent) c += '<div class="impl-intent">' + block.Intent + '</div>';
-            c += '<pre><code class="language-csharp">' + escapeHtml(block.Content) + '</code></pre>';
+            c += '<pre><code class="' + langClass + '">' + escapeHtml(block.Content) + '</code></pre>';
 
             if (block.StatementsCovered > 0) {
                 c += '<div style="padding:0.25rem 1.25rem; font-size:0.65rem; color:#94a3b8; background:#0f172a">' + 
@@ -307,6 +507,235 @@
             }
             if (block.VerificationStatus !== 'VERIFIED') c += '<div class="drift-badge">⚠️ ' + block.VerificationStatus + '</div>';
             return c + '</div>';
+        }
+        function renderCoverageMapv2(implementations, tests, data) {
+            if (implementations.length === 0) return '';
+            
+            // Build the coverage matrix data
+            // For each test, determine which production blocks it covers
+            // Filter out internal step definitions from the matrix columns
+            const allTests = tests
+                .filter(t => {
+                    const name = t.Name || "";
+                    const content = t.Content || "";
+                    const isStep = name.includes("Steps") || content.includes("[Binding]");
+                    return !isStep;
+                })
+                .map(t => {
+                    const filePath = t.FilePath || "";
+                    const isBdd = filePath.endsWith('.feature');
+                    return { name: t.Name, type: isBdd ? 'bdd' : 'unit', block: t };
+                });
+            
+            // Build coverage relationships from VerifyingTests (runtime data)
+            // and from reference analysis (static data)
+            const coverageMatrix = {}; // testName -> Set of implName
+            
+            allTests.forEach(t => {
+                coverageMatrix[t.name] = new Set();
+            });
+            
+            // From runtime data: impl.VerifyingTests tells us which tests hit each impl
+            implementations.forEach(impl => {
+                if (impl.VerifyingTests && impl.VerifyingTests.length > 0) {
+                    impl.VerifyingTests.forEach(testId => {
+                        // Match directly or normalized
+                        const normalizedTestId = testId.replace(/^Scenario:\s*/, "").trim();
+                        
+                        // Find matching test in allTests
+                        const targetTest = allTests.find(t => 
+                            t.name === testId || 
+                            t.name === normalizedTestId ||
+                            (t.name.includes('.') && t.name.endsWith('.' + testId))
+                        );
+                        
+                        const effectiveKey = targetTest ? targetTest.name : testId;
+                        if (!coverageMatrix[effectiveKey]) coverageMatrix[effectiveKey] = new Set();
+                        coverageMatrix[effectiveKey].add(impl.Name);
+                    });
+                }
+            });
+            
+            // From static reference analysis: if a test references an implementation
+            allTests.forEach(t => {
+                if (t.block.References && t.block.References.length > 0) {
+                    implementations.forEach(impl => {
+                        const implBaseName = impl.Name.includes('.') ? impl.Name.split('.').pop() : impl.Name;
+                        const implClassName = impl.Name.includes('.') ? impl.Name.split('.')[0] : impl.Name;
+                        if (t.block.References.includes(implBaseName) || t.block.References.includes(implClassName) || t.block.References.includes(impl.Name)) {
+                            coverageMatrix[t.name].add(impl.Name);
+                        }
+                    });
+                }
+            });
+            
+            // Also check: for BDD tests (feature.cs), map scenario methods to step definitions
+            // BDD scenarios exercise steps, and steps reference production code
+            const stepTests = allTests.filter(t => t.type === 'bdd' && t.block.Content);
+            stepTests.forEach(t => {
+                // Steps reference production code via References
+                if (t.block.References) {
+                    implementations.forEach(impl => {
+                        const implBaseName = impl.Name.includes('.') ? impl.Name.split('.').pop() : impl.Name;
+                        if (t.block.References.includes(implBaseName) || t.block.References.includes(impl.Name)) {
+                            coverageMatrix[t.name].add(impl.Name);
+                        }
+                    });
+                }
+            });
+            
+            // Get all test names that have at least one coverage relationship or exist as test
+            const testNames = Object.keys(coverageMatrix).filter(tn => {
+                return allTests.some(t => t.name === tn) || coverageMatrix[tn].size > 0;
+            });
+            
+            if (testNames.length === 0 && allTests.length === 0) {
+                return '';
+            }
+            
+            // Use allTests order for rows
+            const orderedTests = allTests.length > 0 ? allTests : testNames.map(n => ({ name: n, type: 'unit', block: {} }));
+            
+            // Calculate stats
+            let totalCells = orderedTests.length * implementations.length;
+            let hitCells = 0;
+            orderedTests.forEach(t => {
+                implementations.forEach(impl => {
+                    if (coverageMatrix[t.name] && coverageMatrix[t.name].has(impl.Name)) hitCells++;
+                });
+            });
+            const overallPct = totalCells > 0 ? Math.round((hitCells / totalCells) * 100) : 0;
+            
+            // Per-block coverage (how many tests cover each block)
+            const blockCoverage = {};
+            implementations.forEach(impl => {
+                let count = 0;
+                orderedTests.forEach(t => {
+                    if (coverageMatrix[t.name] && coverageMatrix[t.name].has(impl.Name)) count++;
+                });
+                blockCoverage[impl.Name] = { count, pct: orderedTests.length > 0 ? Math.round((count / orderedTests.length) * 100) : 0 };
+            });
+            
+            // Per-test coverage (how many blocks each test covers)
+            const testCoverage = {};
+            orderedTests.forEach(t => {
+                let count = 0;
+                implementations.forEach(impl => {
+                    if (coverageMatrix[t.name] && coverageMatrix[t.name].has(impl.Name)) count++;
+                });
+                testCoverage[t.name] = { count, pct: implementations.length > 0 ? Math.round((count / implementations.length) * 100) : 0 };
+            });
+            
+            let m = '<div class="coverage-map-section">';
+            m += '<h3>Coverage Map</h3>';
+            
+            // Stats bar
+            m += '<div class="coverage-stats-bar">';
+            m += '<div class="coverage-stat"><span class="coverage-stat-value">' + orderedTests.length + '</span><span class="coverage-stat-label">Tests</span></div>';
+            m += '<div class="coverage-stat"><span class="coverage-stat-value">' + implementations.length + '</span><span class="coverage-stat-label">Code Blocks</span></div>';
+            m += '<div class="coverage-stat"><span class="coverage-stat-value">' + hitCells + '<span style="font-size:0.8rem;color:var(--text-secondary)">/' + totalCells + '</span></span><span class="coverage-stat-label">Connections</span></div>';
+            m += '<div class="coverage-stat"><span class="coverage-stat-value ' + pctColorClass(overallPct) + '">' + overallPct + '%</span><span class="coverage-stat-label">Density</span></div>';
+            m += '</div>';
+            
+            if (orderedTests.length === 0) {
+                m += '<div class="coverage-empty-state">';
+                m += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>';
+                m += '<div>No test coverage data available</div>';
+                m += '<p>Run with <code>--runtime</code> flag to collect execution data</p>';
+                m += '</div>';
+                m += '</div>';
+                return m;
+            }
+            
+            // Matrix table
+            m += '<div class="coverage-map-wrapper" style="margin-top:2.5rem">';
+            m += '<table class="coverage-matrix">';
+            
+            // Header row (Tests as columns, slanted)
+            m += '<thead><tr>';
+            m += '<th class="corner-cell" style="background:transparent; border:none"></th>';
+            orderedTests.forEach(t => {
+                const shortTestName = t.name.includes('.') ? t.name.split('.').pop() : t.name;
+                m += '<th class="col-header"><div class="col-label-wrapper" title="' + escapeHtml(t.name) + '">';
+                m += '<span class="test-indicator-badge ' + t.type + '"><span>' + (t.type === 'bdd' ? 'B' : 'U') + '</span></span>';
+                m += '<span>' + escapeHtml(shortTestName) + '</span></div></th>';
+            });
+            m += '<th class="col-header" style="height:auto; vertical-align:bottom; padding-bottom:0.5rem; text-align:center; color:var(--text-secondary); font-size:0.6rem; font-weight:800; text-transform:uppercase;">Coverage</th>';
+            m += '</tr></thead>';
+            
+            // Body rows — one per code block
+            m += '<tbody>';
+            implementations.forEach(impl => {
+                m += '<tr>';
+                m += '<td class="row-header-cell" title="' + escapeHtml(impl.Name) + '" onclick="scrollToImplCard(\'' + escapeHtml(impl.Name) + '\')">' + escapeHtml(impl.Name) + '</td>';
+                
+                orderedTests.forEach(t => {
+                    const isHit = coverageMatrix[t.name] && coverageMatrix[t.name].has(impl.Name);
+                    const shortTestName = t.name.includes('.') ? t.name.split('.').pop() : t.name;
+                    if (isHit) {
+                        m += '<td><div class="coverage-cell hit" onclick="scrollToImplCard(\'' + escapeHtml(impl.Name) + '\')">';
+                        m += '<span class="coverage-tooltip">' + escapeHtml(shortTestName) + ' hits this</span>';
+                        m += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>';
+                        m += '</div></td>';
+                    } else {
+                        m += '<td><div class="coverage-cell miss">';
+                        m += '<span class="coverage-tooltip">Not covered by this test</span>';
+                        m += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"><circle cx="12" cy="12" r="1"/></svg>';
+                        m += '</div></td>';
+                    }
+                });
+                
+                // Block coverage percentage
+                const bc = blockCoverage[impl.Name] || { count: 0, pct: 0 };
+                m += '<td class="test-count-cell"><span class="coverage-pct ' + pctColorClass(bc.pct) + '">' + bc.pct + '%</span></td>';
+                m += '</tr>';
+            });
+            
+            // Summary row (Test coverage percentages)
+            m += '<tr class="coverage-summary-row">';
+            m += '<td class="row-header-cell">Test Coverage</td>';
+            orderedTests.forEach(t => {
+                const tc = testCoverage[t.name] || { count: 0, pct: 0 };
+                m += '<td><span class="coverage-pct ' + pctColorClass(tc.pct) + '">' + tc.pct + '%</span></td>';
+            });
+            m += '<td class="test-count-cell"><span class="coverage-pct ' + pctColorClass(overallPct) + '">' + overallPct + '%</span></td>';
+            m += '</tr>';
+            
+            m += '</tbody></table></div>';
+            
+            // Legend
+            m += '<div class="coverage-legend">';
+            m += '<div class="coverage-legend-item"><div class="coverage-legend-dot hit"></div>Covered</div>';
+            m += '<div class="coverage-legend-item"><div class="coverage-legend-dot miss"></div>Not Covered</div>';
+            m += '</div>';
+            
+            m += '</div>';
+            return m;
+        }
+        function pctColorClass(pct) {
+            if (pct >= 100) return 'full';
+            if (pct >= 75) return 'high';
+            if (pct >= 40) return 'mid';
+            if (pct > 0) return 'low';
+            return 'none';
+        }
+        function scrollToImplCard(name) {
+            const implPane = document.getElementById('impl-content');
+            const cards = implPane.querySelectorAll('.impl-card');
+            for (const card of cards) {
+                const header = card.querySelector('.impl-filename');
+                if (header && header.textContent.includes(name)) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+                    card.style.boxShadow = '0 0 0 2px var(--accent), 0 10px 25px -5px rgba(99,102,241,0.3)';
+                    card.style.borderColor = 'var(--accent)';
+                    setTimeout(() => {
+                        card.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+                        card.style.borderColor = '#334155';
+                    }, 2000);
+                    break;
+                }
+            }
         }
         function openModal() { document.getElementById('manual-modal').style.display = 'flex'; }
         function closeModal() { document.getElementById('manual-modal').style.display = 'none'; }

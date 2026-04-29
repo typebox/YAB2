@@ -9,7 +9,7 @@ namespace Yab.Cli.Services
     {
         private static readonly string[] DefaultExclusions = { 
             ".git", ".gemini", "bin", "obj", ".vs", "node_modules", 
-            "LivingDocumentation.html", "BUILD_CERTIFICATE.md", ".yab"
+            "LivingDocumentation.html", "BUILD_CERTIFICATE.md", ".yab", ".feature.cs"
         };
         private readonly List<string> _gitIgnoredPatterns = new List<string>();
         private readonly string _rootPath;
@@ -38,12 +38,18 @@ namespace Yab.Cli.Services
             var relativePath = Path.GetRelativePath(_rootPath, filePath).Replace('\\', '/');
             var pathParts = relativePath.Split('/');
 
+            // Skip anything in .yab directory
+            if (pathParts.Any(p => p.Equals(".yab", StringComparison.OrdinalIgnoreCase))) return true;
+
             // Check default exclusions in any part of the path
             foreach (var part in pathParts)
             {
                 if (DefaultExclusions.Any(e => e.Equals(part, StringComparison.OrdinalIgnoreCase))) 
                     return true;
             }
+
+            // Never include generated feature code
+            if (filePath.EndsWith(".feature.cs", StringComparison.OrdinalIgnoreCase)) return true;
 
             // Check .gitignore patterns
             foreach (var pattern in _gitIgnoredPatterns)

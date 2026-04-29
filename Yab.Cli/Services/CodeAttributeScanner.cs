@@ -46,7 +46,28 @@ namespace Yab.Cli.Services
                 if (member.Parent is InterfaceDeclarationSyntax) continue;
                 // We now collect everything, not just things with attributes
                 var attributes = member.AttributeLists.SelectMany(al => al.Attributes).ToList();
-                var conceptAttrs = attributes.Where(a => a.Name.ToString().Contains("Concept")).ToList();
+                var concepts = attributes
+                    .Where(a => a.Name.ToString().Contains("Concept"))
+                    .Select(a => GetAttributeValue(a))
+                    .Where(v => v != null)
+                    .Cast<string>()
+                    .ToList();
+
+                // Detect concepts from XUnit Traits: [Trait("Category", "yab-concept:ConceptName")]
+                foreach (var attr in attributes.Where(a => a.Name.ToString().Contains("Trait")))
+                {
+                    if (attr.ArgumentList != null && attr.ArgumentList.Arguments.Count >= 2)
+                    {
+                        var key = attr.ArgumentList.Arguments[0].Expression.ToString().Trim('\"');
+                        var val = attr.ArgumentList.Arguments[1].Expression.ToString().Trim('\"');
+                        if (key == "Category" && val.StartsWith("yab-concept:"))
+                        {
+                            var conceptName = val.Substring("yab-concept:".Length);
+                            if (!concepts.Contains(conceptName)) concepts.Add(conceptName);
+                        }
+                    }
+                }
+
                 var intentAttr = attributes.FirstOrDefault(a => a.Name.ToString().Contains("Intent"));
 
                 var block = new CodeBlock
@@ -56,7 +77,7 @@ namespace Yab.Cli.Services
                     EndLine = tree.GetLineSpan(member.Span).EndLinePosition.Line + 1,
                     Content = NormalizeIndentation(member.ToString()),
                     Name = GetMemberName(member),
-                    Concepts = conceptAttrs.Select(a => GetAttributeValue(a)).Where(v => v != null).Cast<string>().ToList(),
+                    Concepts = concepts,
                     Intent = intentAttr != null ? GetAttributeValue(intentAttr) : null,
                     References = ExtractReferences(member)
                 };

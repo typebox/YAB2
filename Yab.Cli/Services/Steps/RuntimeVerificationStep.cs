@@ -65,6 +65,14 @@ namespace Yab.Cli.Services.Steps
                         var targetProjDir = Path.Combine(tempPath, Path.GetRelativePath(slnRoot, projectPath));
                         CopyProjectFiles(projectPath, targetProjDir, context);
                         instrumenter.Instrument(projectPath, targetProjDir);
+                        
+                        // Inject Reqnroll hooks if it's a test project with Reqnroll
+                        var csproj = Directory.GetFiles(targetProjDir, "*.csproj").FirstOrDefault();
+                        if (csproj != null && File.ReadAllText(csproj).Contains("Reqnroll"))
+                        {
+                            instrumenter.InjectReqnrollHooks(targetProjDir);
+                        }
+
                         AddRuntimeReference(targetProjDir, projectPath, context);
                     }
 
